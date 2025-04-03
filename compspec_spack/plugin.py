@@ -49,9 +49,12 @@ class SpackGraph(JsonGraph):
             "target": package["arch"]["target"]["name"],
             "os": package["arch"]["platform_os"],
             "vendor": package["arch"]["target"]["vendor"],
-            "compiler_version": package["compiler"]["version"],
-            "compiler": package["compiler"]["name"],
         }
+
+        # Only supported for older versions of spack
+        if "compiler" in package:
+            metadata["compiler_version"] = package["compiler"]["version"]
+            metadata["compiler"] = package["compiler"]["name"]
 
         # This could be parsed into separate spaces - e.g., compilers,
         # But I'm doing it simple for now and each of these is a node attribute
@@ -131,7 +134,8 @@ class Plugin(PluginBase):
         g = SpackGraph("spack")
 
         # Add the root node for the spack subsystem
-        g.generate_root()
+        # attributes need to identify the initial location
+        g.generate_root(attributes={"root": spack_root})
 
         for package_root in paths:
             g.add_package(package_root)
