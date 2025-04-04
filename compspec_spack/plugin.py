@@ -30,10 +30,12 @@ class SpackGraph(JsonGraph):
         # I'm not going to parse deps here, just the top level of each
         spec_file = os.path.join(package_root, "spec.json")
 
+        # In practice, this can happen if software is actively being installed
         if not os.path.exists(manifest_file) or not os.path.exists(spec_file):
             logger.warning(
                 f"Manifest or spec file missing for {package_root}, skipping."
             )
+            return
 
         manifest = utils.read_json(manifest_file)
         spec = utils.read_json(spec_file)
@@ -49,9 +51,12 @@ class SpackGraph(JsonGraph):
             "target": package["arch"]["target"]["name"],
             "os": package["arch"]["platform_os"],
             "vendor": package["arch"]["target"]["vendor"],
-            "compiler_version": package["compiler"]["version"],
-            "compiler": package["compiler"]["name"],
         }
+
+        # Only supported for older versions of spack
+        if "compiler" in package:
+            metadata["compiler_version"] = package["compiler"]["version"]
+            metadata["compiler"] = package["compiler"]["name"]
 
         # This could be parsed into separate spaces - e.g., compilers,
         # But I'm doing it simple for now and each of these is a node attribute
@@ -130,8 +135,12 @@ class Plugin(PluginBase):
         # We could use args.name here, but "spack" is more accurate for the subsystem
         g = SpackGraph("spack")
 
+        # Add metadata type->software, which is also defined at the root
+        g.metadata["type"] = "software"
+
         # Add the root node for the spack subsystem
-        g.generate_root()
+        # attributes need to identify the initial location, and that spack defines software
+        g.generate_root(attributes={"root": spack_root}, typ="software")
 
         for package_root in paths:
             g.add_package(package_root)
