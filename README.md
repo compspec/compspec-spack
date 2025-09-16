@@ -26,13 +26,13 @@ pip install compspec-spack
 Then run an extraction with spack. You will want to provide the root to the spack install to describe:
 
 ```bash
-compspec extract spack /path/to/spack
+compspec extract spack /opt/spack
 ```
 
 To save to file:
 
 ```bash
-compspec extract --outfile spack-subsystem.json spack /path/to/spack
+compspec extract --outfile spack-subsystem.json spack /opt/spack
 ```
 
 
