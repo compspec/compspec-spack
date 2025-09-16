@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import shutil
 
 import compspec.utils as utils
 from compspec.create.jsongraph import JsonGraph
@@ -15,7 +16,7 @@ class SpackGraph(JsonGraph):
     def add_package(self, package_root):
         """
         Add package root to graph. Structure is the following
-        (keeping it simple to start):
+        (keeping it simple to start).
 
         spack root
           package --> name@version
@@ -115,6 +116,19 @@ class Plugin(PluginBase):
             help="Arguments for spack (defaults to reasonable set if not defined)",
             nargs="*",
         )
+
+    def detect(self):
+        """
+        Detect spack either based on executable or SPACK_ROOT discovery.
+        """
+        spack_path = shutil.which("spack")
+        if spack_path:
+            spack_root = os.path.dirname(os.path.dirname(spack_path))
+        else:
+            spack_root = os.environ.get("SPACK_ROOT")
+        if not spack_root or not os.path.exists(spack_root):
+            return False
+        return True
 
     def extract(self, args, extra):
         """
