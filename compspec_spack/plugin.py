@@ -117,18 +117,34 @@ class Plugin(PluginBase):
             nargs="*",
         )
 
-    def detect(self):
+    def check(self):
         """
-        Detect spack either based on executable or SPACK_ROOT discovery.
+        Check for spack either based on executable or SPACK_ROOT discovery.
+        """
+        spack_root = self.find_spack_root()
+        if not spack_root or not os.path.exists(spack_root):
+            return False
+        return True
+
+    def find_spack_root(self):
+        """
+        Find a spack root.
         """
         spack_path = shutil.which("spack")
         if spack_path:
             spack_root = os.path.dirname(os.path.dirname(spack_path))
         else:
             spack_root = os.environ.get("SPACK_ROOT")
-        if not spack_root or not os.path.exists(spack_root):
-            return False
-        return True
+        return spack_root
+
+    def detect(self):
+        """
+        Headless extract entrypoint.
+        """
+        spack_root = self.find_spack_root()
+        if spack_root is None:
+            return
+        return self._extract(spack_root)
 
     def extract(self, args, extra):
         """
@@ -139,7 +155,12 @@ class Plugin(PluginBase):
         spack_root = os.path.abspath(args.spack_args[0])
         if not os.path.exists(spack_root):
             raise ValueError(f"Spack root {spack_root} does not exist.")
+        return self._extract(spack_root, args.name)
 
+    def _extract(self, spack_root, name=None):
+        """
+        Shared extraction.
+        """
         # Recursive find of all spack metadata directories
         install_root = os.path.join(spack_root, "opt", "spack")
         paths = self.get_spack_metadata_paths(install_root)
@@ -160,7 +181,9 @@ class Plugin(PluginBase):
             g.add_package(package_root)
 
         # Generate a dictionary with custom metadata
-        return g.to_dict({"install_name": args.name, "spack_root": install_root})
+        return g.to_dict(
+            {"install_name": name or self.name, "spack_root": install_root}
+        )
 
     def get_spack_metadata_paths(self, root):
         """
